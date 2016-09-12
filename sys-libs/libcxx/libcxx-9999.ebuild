@@ -8,10 +8,11 @@ EAPI=6
 EGIT_REPO_URI="http://llvm.org/git/libcxx.git
 	https://github.com/llvm-mirror/libcxx.git"
 CMAKE_MIN_VERSION=3.4.3
+PYTHON_COMPAT=( python2_7 )
 
 [[ ${PV} == 9999 ]] && SCM="git-r3" || SCM=""
 
-inherit ${SCM} cmake-multilib toolchain-funcs
+inherit ${SCM} cmake-multilib python-any-r1 toolchain-funcs
 
 DESCRIPTION="New implementation of the C++ standard library, targeting C++11"
 HOMEPAGE="http://libcxx.llvm.org/"
@@ -37,7 +38,8 @@ RDEPEND="libcxxrt? ( sys-libs/libcxxrt[libunwind=,static-libs?,${MULTILIB_USEDEP
 # llvm-3.9.0 needed because its cmake files installation path changed, which is
 # needed by libcxx
 DEPEND="${RDEPEND}
-	test? ( sys-devel/clang )
+	test? ( sys-devel/clang
+		${PYTHON_DEPS} )
 	app-arch/xz-utils
 	>=sys-devel/llvm-3.9.0[${MULTILIB_USEDEP}]"
 
@@ -50,6 +52,8 @@ PATCHES=(
 )
 
 pkg_setup() {
+	use test && python_setup
+
 	if ! use libcxxrt && ! tc-is-gcc ; then
 		eerror "To build ${PN} against libsupc++, you have to use gcc. Other"
 		eerror "compilers are not supported. Please set CC=gcc and CXX=g++"
@@ -62,6 +66,21 @@ pkg_setup() {
 		eerror "gcc-4.7 or later version."
 		die
 	fi
+}
+
+src_unpack() {
+	if use test; then
+		# needed for tests
+		git-r3_fetch "http://llvm.org/git/llvm.git
+			https://github.com/llvm-mirror/llvm.git"
+	fi
+	git-r3_fetch
+
+	if use test; then
+		git-r3_checkout http://llvm.org/git/llvm.git \
+			"${WORKDIR}"/llvm
+	fi
+	git-r3_checkout
 }
 
 multilib_src_configure() {
@@ -86,20 +105,19 @@ multilib_src_configure() {
 		-DLIBCXX_ENABLE_ABI_LINKER_SCRIPT=OFF
 		-DLIBCXX_HAS_MUSL_LIBC=$(usex elibc_musl)
 		-DLIBCXX_HAS_GCC_S_LIB=$(usex !libunwind)
+		-DLIBCXX_INCLUDE_TESTS=$(usex test)
 		-DCMAKE_SHARED_LINKER_FLAGS=$(usex libunwind "-lunwind" "")
 	)
+	if use test; then
+		mycmakeargs+=(
+			-DLLVM_MAIN_SRC_DIR="${WORKDIR}/llvm"
+		)
+	fi
 	cmake-utils_src_configure
 }
 
-# Tests fail for now, if anybody is able to fix them, help is very welcome.
 multilib_src_test() {
-	cd "${S}/test"
-	LD_LIBRARY_PATH="${BUILD_DIR}/lib:${LD_LIBRARY_PATH}" \
-		CC="clang++ $(get_abi_CFLAGS) ${CXXFLAGS}" \
-		HEADER_INCLUDE="-I${S}/include" \
-		SOURCE_LIB="-L${S}/lib" \
-		LIBS="-lm $(usex libcxxrt -lcxxrt "")" \
-		./testit || die
+	cmake-utils_src_make check-libcxx
 }
 
 # Usage: deps
