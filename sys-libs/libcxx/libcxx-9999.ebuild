@@ -4,8 +4,10 @@
 
 EAPI=6
 
+: ${CMAKE_MAKEFILE_GENERATOR:=ninja}
 EGIT_REPO_URI="http://llvm.org/git/libcxx.git
 	https://github.com/llvm-mirror/libcxx.git"
+CMAKE_MIN_VERSION=3.4.3
 
 [ "${PV%9999}" != "${PV}" ] && SCM="git-r3" || SCM=""
 
