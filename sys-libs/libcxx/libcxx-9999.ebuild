@@ -9,13 +9,13 @@ EGIT_REPO_URI="http://llvm.org/git/libcxx.git
 	https://github.com/llvm-mirror/libcxx.git"
 CMAKE_MIN_VERSION=3.4.3
 
-[ "${PV%9999}" != "${PV}" ] && SCM="git-r3" || SCM=""
+[[ ${PV} == 9999 ]] && SCM="git-r3" || SCM=""
 
 inherit ${SCM} cmake-multilib toolchain-funcs
 
 DESCRIPTION="New implementation of the C++ standard library, targeting C++11"
 HOMEPAGE="http://libcxx.llvm.org/"
-if [ "${PV%9999}" = "${PV}" ] ; then
+if [[ ${PV} != 9999 ]] ; then
 	SRC_URI="http://llvm.org/releases/${PV}/${P}.src.tar.xz"
 	S="${WORKDIR}/${P}.src"
 else
@@ -24,7 +24,7 @@ fi
 
 LICENSE="|| ( UoI-NCSA MIT )"
 SLOT="0"
-if [ "${PV%9999}" = "${PV}" ] ; then
+if [[ ${PV} != 9999 ]] ; then
 	KEYWORDS="~amd64 ~x86 ~amd64-fbsd ~x86-fbsd ~amd64-linux ~x86-linux"
 else
 	KEYWORDS=""
